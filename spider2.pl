@@ -31,7 +31,6 @@ sub send_url {
  
 	$count++;
 	say "Start ($count) $url";
-	#p @size_urls;
 	$cv->begin;
 	http_get $url, sub {
 		my ($html) = @_;
