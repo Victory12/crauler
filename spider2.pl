@@ -5,50 +5,39 @@ use DDP;
 use AnyEvent::HTTP;
 use AnyEvent;
 use v5.10;
- 
-my @urls = qw(
 
-	https://perlmaven.com/pm/login
+my @urls = qw(
+	http://pandok.ru/zakazat-banket
+	http://pandok.ru/sezonnoe-menyu
+	http://pandok.ru/sezonnoe-menyu/product/221-salat-letnij
 );
+
+my $cv = AnyEvent->condvar;
 my @size_urls;
 my $count = 0;
-my $cv = AnyEvent->condvar;
-
-my $url = $urls[$count];
-$count++;
-my $gua;
-$gua = http_get 
-	$url, 
-	sub {
-		my ( $body, $head) = @_;
-		push @size_urls, {url => $url, size => length $body};
-		undef $gua;
-		@urls = (@urls, get_data($body, $url, @urls));
-		while ($#size_urls < 200) {
-   			send_url();
-		}
-	};
-
+my $max = 4;
+ 
+for (1 .. $max) {
+   send_url();
+}
 $cv->recv;
-@size_urls = reverse sort { $a->{size} <=> $b->{size} } @size_urls;
-p @size_urls;
-
-
+ 
+ 
 sub send_url {
-	$url = $urls[$count];
-	return if not $url;
+	return if $#size_urls >= 10000;
+ 
+	my $url = $urls[$count];
+	return unless defined $url;
+ 
 	$count++;
 	say "Start ($count) $url";
-	p @urls;
+	#p @size_urls;
 	$cv->begin;
-	my $guard;
-	$guard = http_get $url, sub {
-		my ( $body, $head) = @_;
-		say "$url work";
-		push @size_urls, {url => $url, size =>  length $body};
-		@urls = (@urls, get_data($body, $url, @urls));
-		p @urls;
-		p @size_urls;
+	http_get $url, sub {
+		my ($html) = @_;
+		say "$url received, Size: ", length $html;
+		push @size_urls, {url => $url, size => length $html};
+		@urls = (@urls, get_data($html, $url, @urls)) if $#urls < 10000;
 		$cv->end;
 		send_url();
 	};
@@ -63,9 +52,9 @@ sub get_data{
     $body =~ s[<head>(.*)</head>][]s;
     while($body =~ s[href="($url[^"]*|/[^"]*)"][]s){
        my $str = $1;
-       $str =~ s[^/(.*)][https://perlmaven.com/$1];      
+       $str =~ s[^/(.*)][http://pandok.ru/$1];      
        unless ( $str ~~ @urls )   {
-       	  push @array,$str;
+       	  push @array,$str unless $str =~ /search/;
        }  
     }
     my %hash;
