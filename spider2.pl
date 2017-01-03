@@ -5,30 +5,44 @@ use DDP;
 use AnyEvent::HTTP;
 use AnyEvent;
 use v5.10;
-
+#change to parse first page
+#	http://pandok.ru/zakazat-banket
+#	http://pandok.ru/sezonnoe-menyu
+#	http://pandok.ru/sezonnoe-menyu/product/221-salat-letnij
+#);
 my @urls = qw(
-	http://pandok.ru/zakazat-banket
-	http://pandok.ru/sezonnoe-menyu
-	http://pandok.ru/sezonnoe-menyu/product/221-salat-letnij
-);
-
+	http://pandok.ru/);
+my $count = 0;
 my $cv = AnyEvent->condvar;
 my @size_urls;
-my $count = 0;
+
 my $max = 4;
- 
-for (1 .. $max) {
-   send_url();
-}
+my $guard;
+$guard = http_get $urls[0], sub {
+		my ($html) = @_;
+		 
+		p @urls;
+		say "$urls[0] $count received, Size: ", length $html;
+		push @size_urls, {url => $urls[0], size => length $html};
+		@urls = (@urls, get_data($html, $urls[0], @urls)) if $#urls < 10000;
+		p @urls;
+		#undef $guard;
+		$count+=1;
+		for (1 .. $max) {
+		   send_url();
+		}
+		
+	};
+
+
+
 $cv->recv;
  
  
 sub send_url {
 	return if $#size_urls >= 10000;
- 
 	my $url = $urls[$count];
 	return unless defined $url;
- 
 	$count++;
 	say "Start ($count) $url";
 	$cv->begin;
@@ -42,7 +56,7 @@ sub send_url {
 	};
 	return 1;
 }
-
+# normal parser
 sub get_data{
     my $body = shift;
     my $url = shift;
