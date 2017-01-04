@@ -73,7 +73,7 @@ sub parser {
     my @result;
     for my $link (@array){
     	if ( defined $link->{href} and $link->{tag} eq 'a' ){    		
-    		if ($link->{href} =~ m[^$url.+] and $link->{href} =~ m[^(?!.*(mp3|gif|jpg|pdf|doc)).*$]){  
+    		if ($link->{href} =~ m[^$url.+] and $link->{href} =~ m[^(?!.*(jpg|pdf|doc)).*$]){  
 	    		unless ( $link->{href} ~~ @urls )   {
 	       	 		push @result, $link->{href};
 	       		}    				
